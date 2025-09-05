@@ -1,0 +1,41 @@
+require('./loadEnv').loadEnv();
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
+const { connectToDatabase } = require('./db');
+const { config } = require('./config');
+
+const app = express();
+
+app.use(cors({
+	origin: config.clientOrigin,
+	credentials: true,
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+app.get('/health', (req, res) => {
+	res.json({ status: 'ok' });
+});
+
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/classes', require('./routes/classes'));
+app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/qa', require('./routes/qa'));
+app.use('/api/ai', require('./routes/ai'));
+
+async function start() {
+	try {
+		await connectToDatabase();
+		app.listen(config.port, () => {
+			console.log(`Server listening on http://localhost:${config.port}`);
+		});
+	} catch (err) {
+		console.error('Failed to start server:', err);
+		process.exit(1);
+	}
+}
+
+start();
