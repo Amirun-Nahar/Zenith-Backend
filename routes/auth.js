@@ -74,6 +74,11 @@ router.post('/login', async (req, res) => {
 		const ok = await bcrypt.compare(password, user.passwordHash);
 		if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 		const token = jwt.sign({ id: user._id, name: user.name, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
+		
+		console.log('🔐 Setting cookie:', config.cookieName, 'with options:', config.cookieOptions);
+		console.log('🔐 Request origin:', req.headers.origin);
+		console.log('🔐 Request headers:', req.headers);
+		
 		res.cookie(config.cookieName, token, config.cookieOptions);
 		return res.json({ id: user._id, name: user.name, email: user.email });
 	} catch (err) {
@@ -83,6 +88,8 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/me', requireAuth, async (req, res) => {
+	console.log('🔐 /me endpoint - cookies received:', req.cookies);
+	console.log('🔐 /me endpoint - user:', req.user);
 	return res.json({ user: req.user });
 });
 
