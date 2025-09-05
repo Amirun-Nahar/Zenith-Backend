@@ -78,8 +78,10 @@ router.post('/login', async (req, res) => {
 		console.log('🔐 Setting cookie:', config.cookieName, 'with options:', config.cookieOptions);
 		console.log('🔐 Request origin:', req.headers.origin);
 		console.log('🔐 Request headers:', req.headers);
+		console.log('🔐 Token length:', token.length);
 		
 		res.cookie(config.cookieName, token, config.cookieOptions);
+		console.log('🔐 Cookie set successfully');
 		return res.json({ id: user._id, name: user.name, email: user.email });
 	} catch (err) {
 		console.error('Login error:', err);
