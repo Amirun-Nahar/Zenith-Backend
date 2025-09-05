@@ -11,26 +11,11 @@ const app = express();
 app.use(cors({
 	origin: config.clientOrigin,
 	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 }));
 app.use(express.json());
 app.use(cookieParser());
-
-app.get('/', (req, res) => {
-	res.json({ 
-		message: 'Zenith Backend API', 
-		status: 'running',
-		version: '1.0.0',
-		endpoints: {
-			health: '/health',
-			auth: '/api/auth',
-			classes: '/api/classes',
-			tasks: '/api/tasks',
-			transactions: '/api/transactions',
-			qa: '/api/qa',
-			ai: '/api/ai'
-		}
-	});
-});
 
 app.get('/health', (req, res) => {
 	res.json({ status: 'ok' });
