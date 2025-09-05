@@ -9,6 +9,7 @@ const config = {
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 		path: '/',
+		domain: process.env.NODE_ENV === 'production' ? undefined : undefined,
 	},
 };
 
