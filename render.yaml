@@ -3,7 +3,7 @@ services:
     name: zenith-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --production
     startCommand: npm start
     healthCheckPath: /health
     envVars:
