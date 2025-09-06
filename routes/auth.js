@@ -156,7 +156,9 @@ router.post('/login', async (req, res) => {
 		);
 
 		// Set cookie
+		console.log('Setting cookie with options:', config.cookieOptions);
 		res.cookie(config.cookieName, token, config.cookieOptions);
+		console.log('Cookie set successfully');
 
 		// Return user data (without password hash)
 		return res.json({

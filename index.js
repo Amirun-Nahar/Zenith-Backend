@@ -13,7 +13,8 @@ app.use(cors({
 		config.clientOrigin,
 		'http://localhost:5173',
 		'https://zenith-frontend.vercel.app',
-		'https://zenith-personal-tracker.vercel.app'
+		'https://zenith-personal-tracker.vercel.app',
+		'https://zenith-academic-hub.netlify.app'
 	],
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

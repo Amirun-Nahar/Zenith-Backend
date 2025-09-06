@@ -6,7 +6,10 @@ const { User } = require('../models/User');
 async function requireAuth(req, res, next) {
 	try {
 		// Get token from cookies
+		console.log('Auth middleware - All cookies:', req.cookies);
+		console.log('Auth middleware - Looking for cookie:', config.cookieName);
 		const token = req.cookies[config.cookieName];
+		console.log('Auth middleware - Token found:', !!token);
 		
 		if (!token) {
 			return res.status(401).json({ 
