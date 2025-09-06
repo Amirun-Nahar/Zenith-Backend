@@ -15,6 +15,23 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.get('/', (req, res) => {
+	res.json({ 
+		message: 'Zenith Backend API', 
+		status: 'running',
+		version: '1.0.0',
+		endpoints: {
+			health: '/health',
+			auth: '/api/auth',
+			classes: '/api/classes',
+			tasks: '/api/tasks',
+			transactions: '/api/transactions',
+			qa: '/api/qa',
+			ai: '/api/ai'
+		}
+	});
+});
+
 app.get('/health', (req, res) => {
 	res.json({ status: 'ok' });
 });

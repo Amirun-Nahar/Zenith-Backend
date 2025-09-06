@@ -4,30 +4,9 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models/User');
 const { config } = require('../config');
 const { requireAuth } = require('../middleware/auth');
-const { initFirebaseAdmin } = require('../firebase');
 
 const router = Router();
 
-router.post('/google', async (req, res) => {
-	try {
-		const { idToken } = req.body || {};
-		if (!idToken) return res.status(400).json({ error: 'Missing idToken' });
-		const admin = initFirebaseAdmin();
-		const decoded = await admin.auth().verifyIdToken(idToken);
-		const email = String(decoded.email || '').toLowerCase();
-		const name = decoded.name || 'User';
-		let user = await User.findOne({ email });
-		if (!user) {
-			user = await User.create({ name, email, passwordHash: decoded.uid });
-		}
-		const token = jwt.sign({ id: user._id, name: user.name, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
-		res.cookie(config.cookieName, token, config.cookieOptions);
-		return res.json({ id: user._id, name: user.name, email: user.email });
-	} catch (err) {
-		console.error('Google auth error:', err);
-		return res.status(401).json({ error: 'Invalid Google token' });
-	}
-});
 
 router.post('/register', async (req, res) => {
 	try {
