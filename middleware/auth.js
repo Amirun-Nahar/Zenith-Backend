@@ -5,11 +5,19 @@ const { User } = require('../models/User');
 // Enhanced authentication middleware
 async function requireAuth(req, res, next) {
 	try {
-		// Get token from cookies
-		console.log('Auth middleware - All cookies:', req.cookies);
-		console.log('Auth middleware - Looking for cookie:', config.cookieName);
-		const token = req.cookies[config.cookieName];
-		console.log('Auth middleware - Token found:', !!token);
+		// Get token from Authorization header or cookies
+		let token = null;
+		
+		// First try Authorization header
+		const authHeader = req.headers.authorization;
+		if (authHeader && authHeader.startsWith('Bearer ')) {
+			token = authHeader.substring(7);
+		}
+		
+		// Fallback to cookies
+		if (!token) {
+			token = req.cookies[config.cookieName];
+		}
 		
 		if (!token) {
 			return res.status(401).json({ 

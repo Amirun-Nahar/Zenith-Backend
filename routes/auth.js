@@ -84,13 +84,14 @@ router.post('/register', async (req, res) => {
 			{ expiresIn: '7d' }
 		);
 
-		// Set cookie
+		// Set cookie (for fallback)
 		res.cookie(config.cookieName, token, config.cookieOptions);
 
-		// Return user data (without password hash)
+		// Return user data and token
 		return res.status(201).json({
 			success: true,
 			message: 'User registered successfully',
+			token: token,
 			user: {
 				id: user._id,
 				name: user.name,
@@ -155,15 +156,14 @@ router.post('/login', async (req, res) => {
 			{ expiresIn: '7d' }
 		);
 
-		// Set cookie
-		console.log('Setting cookie with options:', config.cookieOptions);
+		// Set cookie (for fallback)
 		res.cookie(config.cookieName, token, config.cookieOptions);
-		console.log('Cookie set successfully');
 
-		// Return user data (without password hash)
+		// Return user data and token
 		return res.json({
 			success: true,
 			message: 'Login successful',
+			token: token,
 			user: {
 				id: user._id,
 				name: user.name,
