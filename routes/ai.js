@@ -651,119 +651,100 @@ router.get('/mindmap/test', (req, res) => {
   res.json({ message: 'Mind map endpoint is working' })
 })
 
-// Mind Map Generator for QA Page
+// Mind Map Generator
 router.post('/mindmap', requireAuth, async (req, res) => {
   try {
-    console.log('Mind map request received:', req.body)
-    const { topic = '', text = '', count = 6, difficulty = 'medium' } = req.body || {}
+    const { topic } = req.body;
+    if (!topic) {
+      return res.status(400).json({ error: 'Topic is required' });
+    }
+
     if (!process.env.GEMINI_API_KEY) {
-      console.log('Missing GEMINI_API_KEY')
-      return res.status(500).json({ error: 'Missing GEMINI_API_KEY' })
+      return res.status(500).json({ error: 'Missing GEMINI_API_KEY' });
     }
 
-    const { GoogleGenerativeAI } = require('@google/generative-ai')
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-    const safeTopic = String(topic || '').slice(0, 120)
-    const safeText = String(text || '').slice(0, 4000)
-
-    const prompt = `Generate a comprehensive mind map structure for the topic "${safeTopic}" based on the provided notes.
-Return ONLY valid JSON object with this structure:
-{
-  "center": {
-    "id": "center",
-    "text": "string"
-  },
-  "nodes": [
-    {
-      "id": "string",
-      "text": "string",
-      "connections": ["string", "string"],
-      "level": number,
-      "category": "string"
-    }
-  ]
-}
-
-Create a hierarchical mind map with:
-1. A central topic node
-2. 4-6 main branches (level 1) representing key aspects/categories
-3. 2-3 sub-branches (level 2) for each main branch with specific details
-4. Ensure connections form a logical hierarchy
-
-Make it comprehensive and well-organized for studying.
-Difficulty: ${difficulty}
-Source Notes:
-${safeText}
-
-Example structure for "Machine Learning":
-- Center: Machine Learning
-- Level 1: Supervised Learning, Unsupervised Learning, Reinforcement Learning
-- Level 2 (for Supervised): Classification, Regression, Neural Networks
-Ensure proper parent-child relationships in connections.
-`
-
-    const result = await model.generateContent(prompt)
-    const raw = result.response.text().trim()
-
-    // Try to extract JSON object
-    const jsonMatch = raw.match(/\{([\s\S]*)\}/)
-    const jsonText = jsonMatch ? jsonMatch[0] : raw
-    let data
-    try { data = JSON.parse(jsonText) } catch (e) {
-      return res.status(500).json({ error: 'AI returned invalid JSON' })
-    }
-
-    // Validate and clean the mind map structure
-    const nodes = Array.isArray(data.nodes) ? data.nodes.map((node, index) => ({
-      id: String(node.id || `node_${index}`).slice(0, 50),
-      text: String(node.text || '').slice(0, 100),
-      connections: Array.isArray(node.connections) ? node.connections : [],
-      level: Number(node.level) || 1,
-      category: String(node.category || 'general').slice(0, 30)
-    })).filter(node => node.text) : []
-
-    // Organize nodes by level
-    const mainNodes = nodes.filter(node => node.level === 1)
-    const subNodes = nodes.filter(node => node.level === 2)
-
-    // Ensure proper parent-child relationships
-    mainNodes.forEach(mainNode => {
-      // Find child nodes that should connect to this main node
-      const childNodes = subNodes.filter(subNode => 
-        subNode.category === mainNode.category ||
-        subNode.connections.includes(mainNode.id)
-      )
-      
-      // Update connections
-      mainNode.connections = childNodes.map(node => node.id)
-      childNodes.forEach(childNode => {
-        childNode.connections = [mainNode.id]
-      })
-    })
-
-    const mindmap = {
-      center: {
-        id: 'center',
-        text: String(data.center?.text || safeTopic || 'Untitled').slice(0, 100),
-        connections: mainNodes.map(node => ({ id: node.id }))
+    // Prompt for Gemini - Updated to generate exactly 6 main concepts like the image
+    const prompt = `Create a mind map for the topic "${topic}". 
+    Format the response as a JSON array of exactly 6 main concepts, where each concept has a "title" and optional "subconcepts" array.
+    Keep titles concise (max 3-4 words).
+    Include exactly 6 main concepts and 2-3 subconcepts for each.
+    Make the concepts comprehensive and well-organized for the topic.
+    Example format:
+    [
+      {
+        "title": "Main Concept 1",
+        "subconcepts": ["Sub 1", "Sub 2"]
       },
-      nodes: [...mainNodes, ...subNodes],
-      structure: {
-        mainBranches: mainNodes.length,
-        subBranches: subNodes.length,
-        totalNodes: mainNodes.length + subNodes.length
+      {
+        "title": "Main Concept 2", 
+        "subconcepts": ["Sub 1", "Sub 2"]
+      },
+      {
+        "title": "Main Concept 3",
+        "subconcepts": ["Sub 1", "Sub 2"]
+      },
+      {
+        "title": "Main Concept 4",
+        "subconcepts": ["Sub 1", "Sub 2"]
+      },
+      {
+        "title": "Main Concept 5",
+        "subconcepts": ["Sub 1", "Sub 2"]
+      },
+      {
+        "title": "Main Concept 6",
+        "subconcepts": ["Sub 1", "Sub 2"]
       }
+    ]`;
+
+    // Generate content
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Parse the JSON response
+    let concepts;
+    try {
+      // Extract JSON from the response (it might be wrapped in backticks or have extra text)
+      const jsonMatch = text.match(/\[([\s\S]*)\]/s);
+      if (jsonMatch) {
+        concepts = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (e) {
+      console.error('Failed to parse Gemini response:', e);
+      return res.status(500).json({ error: 'Failed to generate mind map' });
     }
 
-    if (mindmap.nodes.length === 0) return res.status(500).json({ error: 'No mind map structure generated' })
+    // Helper function to generate a unique ID
+    const generateId = () => Math.random().toString(36).substr(2, 9);
 
-    res.json({ mindmap })
-  } catch (e) {
-    console.error('Mind map error:', e)
-    res.status(500).json({ error: 'Failed to generate mind map' })
+    // Convert to mindmap format
+    const mindmap = {
+      id: 'root',
+      title: topic,
+      children: concepts.map(concept => ({
+        id: generateId(),
+        title: concept.title,
+        children: concept.subconcepts?.map(sub => ({
+          id: generateId(),
+          title: sub,
+          children: []
+        })) || []
+      }))
+    };
+
+    res.json(mindmap);
+
+  } catch (error) {
+    console.error('Mindmap generation error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate mind map' });
   }
-})
+});
 
 module.exports = router 
