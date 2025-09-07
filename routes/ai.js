@@ -668,7 +668,7 @@ router.post('/mindmap', requireAuth, async (req, res) => {
     const safeTopic = String(topic || '').slice(0, 120)
     const safeText = String(text || '').slice(0, 4000)
 
-    const prompt = `Generate a mind map structure for the topic "${safeTopic}" based on the provided notes.
+    const prompt = `Generate a comprehensive mind map structure for the topic "${safeTopic}" based on the provided notes.
 Return ONLY valid JSON object with this structure:
 {
   "center": {
@@ -679,16 +679,21 @@ Return ONLY valid JSON object with this structure:
     {
       "id": "string",
       "text": "string",
-      "connections": ["string", "string"]
+      "connections": ["string", "string"],
+      "level": 1,
+      "category": "string"
     }
   ]
 }
 
-Create a central topic node and ${Math.min(count, 8)} related nodes with connections between them.
-Make it comprehensive and well-organized for studying.
+Create a central topic node and ${Math.min(count, 12)} related nodes with hierarchical connections.
+Include main branches and sub-branches for comprehensive coverage.
+Make it detailed and well-organized for studying.
 Difficulty: ${difficulty}
 Source Notes:
 ${safeText}
+
+Focus on creating a logical hierarchy with main concepts branching into sub-concepts.
 `
 
     const result = await model.generateContent(prompt)
@@ -703,19 +708,30 @@ ${safeText}
     }
 
     // Validate and clean the mind map structure
-    const nodes = Array.isArray(data.nodes) ? data.nodes.slice(0, 8).map((node, index) => ({
+    const nodes = Array.isArray(data.nodes) ? data.nodes.slice(0, 12).map((node, index) => ({
       id: String(node.id || `node_${index}`).slice(0, 50),
-      text: String(node.text || '').slice(0, 80),
-      connections: Array.isArray(node.connections) ? node.connections.slice(0, 4) : []
+      text: String(node.text || '').slice(0, 100),
+      connections: Array.isArray(node.connections) ? node.connections.slice(0, 6) : [],
+      level: Number(node.level) || 1,
+      category: String(node.category || 'general').slice(0, 30)
     })).filter(node => node.text) : []
+
+    // Create hierarchical structure
+    const mainNodes = nodes.filter(node => node.level === 1)
+    const subNodes = nodes.filter(node => node.level === 2)
 
     const mindmap = {
       center: {
         id: 'center',
         text: String(data.center?.text || safeTopic || 'Untitled').slice(0, 100),
-        connections: nodes.slice(0, 6).map(node => ({ id: node.id }))
+        connections: mainNodes.slice(0, 8).map(node => ({ id: node.id }))
       },
-      nodes: nodes
+      nodes: nodes,
+      structure: {
+        mainBranches: mainNodes.length,
+        subBranches: subNodes.length,
+        totalNodes: nodes.length
+      }
     }
 
     if (mindmap.nodes.length === 0) return res.status(500).json({ error: 'No mind map structure generated' })
