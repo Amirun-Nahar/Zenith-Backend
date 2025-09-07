@@ -680,20 +680,28 @@ Return ONLY valid JSON object with this structure:
       "id": "string",
       "text": "string",
       "connections": ["string", "string"],
-      "level": 1,
+      "level": number,
       "category": "string"
     }
   ]
 }
 
-Create a central topic node and ${Math.min(count, 12)} related nodes with hierarchical connections.
-Include main branches and sub-branches for comprehensive coverage.
-Make it detailed and well-organized for studying.
+Create a hierarchical mind map with:
+1. A central topic node
+2. 4-6 main branches (level 1) representing key aspects/categories
+3. 2-3 sub-branches (level 2) for each main branch with specific details
+4. Ensure connections form a logical hierarchy
+
+Make it comprehensive and well-organized for studying.
 Difficulty: ${difficulty}
 Source Notes:
 ${safeText}
 
-Focus on creating a logical hierarchy with main concepts branching into sub-concepts.
+Example structure for "Machine Learning":
+- Center: Machine Learning
+- Level 1: Supervised Learning, Unsupervised Learning, Reinforcement Learning
+- Level 2 (for Supervised): Classification, Regression, Neural Networks
+Ensure proper parent-child relationships in connections.
 `
 
     const result = await model.generateContent(prompt)
@@ -708,29 +716,44 @@ Focus on creating a logical hierarchy with main concepts branching into sub-conc
     }
 
     // Validate and clean the mind map structure
-    const nodes = Array.isArray(data.nodes) ? data.nodes.slice(0, 12).map((node, index) => ({
+    const nodes = Array.isArray(data.nodes) ? data.nodes.map((node, index) => ({
       id: String(node.id || `node_${index}`).slice(0, 50),
       text: String(node.text || '').slice(0, 100),
-      connections: Array.isArray(node.connections) ? node.connections.slice(0, 6) : [],
+      connections: Array.isArray(node.connections) ? node.connections : [],
       level: Number(node.level) || 1,
       category: String(node.category || 'general').slice(0, 30)
     })).filter(node => node.text) : []
 
-    // Create hierarchical structure
+    // Organize nodes by level
     const mainNodes = nodes.filter(node => node.level === 1)
     const subNodes = nodes.filter(node => node.level === 2)
+
+    // Ensure proper parent-child relationships
+    mainNodes.forEach(mainNode => {
+      // Find child nodes that should connect to this main node
+      const childNodes = subNodes.filter(subNode => 
+        subNode.category === mainNode.category ||
+        subNode.connections.includes(mainNode.id)
+      )
+      
+      // Update connections
+      mainNode.connections = childNodes.map(node => node.id)
+      childNodes.forEach(childNode => {
+        childNode.connections = [mainNode.id]
+      })
+    })
 
     const mindmap = {
       center: {
         id: 'center',
         text: String(data.center?.text || safeTopic || 'Untitled').slice(0, 100),
-        connections: mainNodes.slice(0, 8).map(node => ({ id: node.id }))
+        connections: mainNodes.map(node => ({ id: node.id }))
       },
-      nodes: nodes,
+      nodes: [...mainNodes, ...subNodes],
       structure: {
         mainBranches: mainNodes.length,
         subBranches: subNodes.length,
-        totalNodes: nodes.length
+        totalNodes: mainNodes.length + subNodes.length
       }
     }
 
