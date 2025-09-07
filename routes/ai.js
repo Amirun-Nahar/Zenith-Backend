@@ -665,7 +665,7 @@ router.post('/mindmap', requireAuth, async (req, res) => {
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // Prompt for Gemini - Updated to generate exactly 6 main concepts like the image
     const prompt = `Create a mind map for the topic "${topic}". 
@@ -709,16 +709,20 @@ router.post('/mindmap', requireAuth, async (req, res) => {
     // Parse the JSON response
     let concepts;
     try {
+      console.log('Raw Gemini response:', text); // Debug log
       // Extract JSON from the response (it might be wrapped in backticks or have extra text)
       const jsonMatch = text.match(/\[([\s\S]*)\]/s);
       if (jsonMatch) {
         concepts = JSON.parse(jsonMatch[0]);
+        console.log('Parsed concepts:', concepts); // Debug log
       } else {
-        throw new Error('Invalid response format');
+        console.error('No JSON array found in response');
+        throw new Error('Invalid response format - no JSON array found');
       }
     } catch (e) {
       console.error('Failed to parse Gemini response:', e);
-      return res.status(500).json({ error: 'Failed to generate mind map' });
+      console.error('Response text:', text);
+      return res.status(500).json({ error: 'Failed to generate mind map: ' + e.message });
     }
 
     // Helper function to generate a unique ID
